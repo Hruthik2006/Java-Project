@@ -6,6 +6,6 @@
 This is a Java project repository for Plagarism Detector Project and is still under development.
 <br>
 ## Co-Developers
-1. @driti-s
-2. @t
-3. @a
+1. [Driti S](https://github.com/driti-s)
+2. [Tejashwini M B]()
+3. [Anoop S S]()
