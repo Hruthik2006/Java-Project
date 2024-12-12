@@ -3,7 +3,7 @@
 <br>
 <br>
 <br>
-This is a Java project repository for Plagarism Detector Project and is still under development.
+This is a Java project repository for Plagiarism Detector Project and is still under development.
 <br>
 ## Co-Developers
 1. [Driti S](https://github.com/driti-s)
