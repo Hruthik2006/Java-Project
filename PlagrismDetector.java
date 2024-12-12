@@ -7,10 +7,10 @@ import java.nio.file.*;
 import java.util.*;
 import java.util.List;
 
-public class PlagrismDetector {
+public class PlagiarismDetector {
 
     public static void main(String[] args) {
-        SwingUtilities.invokeLater(PlagrismDetector::createAndShowGUI);
+        SwingUtilities.invokeLater(PlagiarismDetector::createAndShowGUI);
     }
 
     private static void createAndShowGUI() {
