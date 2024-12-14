@@ -1,121 +1,219 @@
-import javax.swing.*; 
-import java.awt.*;
-import java.awt.dnd.*;
-import java.awt.datatransfer.*;
-import java.io.*;
-import java.nio.file.*;
-import java.util.*;
-import java.util.List;
+import javax.swing.*;
+//import javax.swing.text.JTextComponent;
+import javax.swing.border.LineBorder;
 
-public class PlagiarismDetector {
+import java.awt.*;
+import java.awt.datatransfer.DataFlavor;
+import java.awt.dnd.*;
+import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.util.List;
+import javax.imageio.ImageIO;
+
+public class PlagiarismCheckerUI {
+    private File file1, file2;
+    private JTextField resultField;
+    //JTextComponent fileNameLabel;
 
     public static void main(String[] args) {
-        SwingUtilities.invokeLater(PlagiarismDetector::createAndShowGUI);
+        SwingUtilities.invokeLater(PlagiarismCheckerUI::new);
     }
 
-    private static void createAndShowGUI() {
-        JFrame frame = new JFrame("Plagiarism Detector");
+    public PlagiarismCheckerUI() {
+        // Create main frame
+        JFrame frame = new JFrame("Plagiarism Checker");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.setSize(800, 500);
+        frame.setSize(600, 400);
+        frame.getContentPane().setBackground(Color.lightGray);
+        frame.setLayout(new BorderLayout());
 
-        // Layout Setup
-        JPanel mainPanel = new JPanel(new BorderLayout());
+        // Instructions at the top
+        JLabel instructions = new JLabel("Drag & drop files into the folder or choose manually", SwingConstants.CENTER);
+        frame.add(instructions, BorderLayout.NORTH);
 
-        // Text Areas for File Content
-        JTextArea fileOneContent = createTextArea("Drag and drop the first file here...");
-        JTextArea fileTwoContent = createTextArea("Drag and drop the second file here...");
-        JScrollPane scrollPane1 = new JScrollPane(fileOneContent);
-        JScrollPane scrollPane2 = new JScrollPane(fileTwoContent);
+        // Panel for file selection (drag-and-drop or manual)
+        JPanel folderPanel = new JPanel();
+        folderPanel.setLayout(new GridLayout(1, 2, 20, 20));
+        folderPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
 
-        // Result Area
-        JTextArea resultArea = new JTextArea("Result will appear here...");
-        resultArea.setEditable(false);
-        resultArea.setLineWrap(true);
-        JScrollPane resultScrollPane = new JScrollPane(resultArea);
+        JPanel file1Panel = createFilePanel("Choose file 1", true);
+        JPanel file2Panel = createFilePanel("Choose file 2", false);
 
-        // Split Pane for File Content Areas
-        JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, scrollPane1, scrollPane2);
-        splitPane.setDividerLocation(350);
+        folderPanel.add(file1Panel);
+        folderPanel.add(file2Panel);
 
-        // Plagiarism Check Button
-        JButton checkButton = new JButton("Check for Plagiarism");
+        frame.add(folderPanel, BorderLayout.CENTER);
 
-        // Add Components to Main Panel
-        mainPanel.add(splitPane, BorderLayout.CENTER);
-        mainPanel.add(checkButton, BorderLayout.NORTH);
-        mainPanel.add(resultScrollPane, BorderLayout.SOUTH);
+        // Compare button at the bottom
+        JPanel bottomPanel = new JPanel(new BorderLayout());
+        JButton compareButton = new JButton("Compare");
+        //compareButton.setPreferredSize(new Dimension(50, 30));
+        compareButton.setBorder(new LineBorder(Color.decode("#8EC5FF"), 2));
+        compareButton.setBackground(Color.decode("#DAEDFF"));
+        compareButton.addActionListener(e -> compareFiles());
 
-        // Drag-and-Drop Support
-        addDragAndDropSupport(fileOneContent);
-        addDragAndDropSupport(fileTwoContent);
+        //compareButton.setForeground(Color.decode("#DAEDFF"));
 
-        // Button Action Listener
-        checkButton.addActionListener(e -> {
-            String content1 = fileOneContent.getText().trim();
-            String content2 = fileTwoContent.getText().trim();
+        resultField = new JTextField("Result: ");
+        resultField.setEditable(false);
 
-            if (content1.isEmpty() || content2.isEmpty()) {
-                resultArea.setText("Please provide content for both files!");
-            } else {
-                int similarity = calculateSimilarity(content1, content2);
-                resultArea.setText("Plagiarism Score: " + similarity + "%");
-            }
-        });
+        bottomPanel.add(compareButton, BorderLayout.NORTH);
+        bottomPanel.add(resultField, BorderLayout.SOUTH);
 
-        frame.add(mainPanel);
+        frame.add(bottomPanel, BorderLayout.SOUTH);
+
         frame.setVisible(true);
     }
 
-    private static JTextArea createTextArea(String placeholderText) {
-        JTextArea textArea = new JTextArea(placeholderText);
-        textArea.setLineWrap(true);
-        textArea.setWrapStyleWord(true);
-        textArea.setFont(new Font("SansSerif", Font.PLAIN, 14));
-        textArea.setMargin(new Insets(10, 10, 10, 10));
-        return textArea;
-    }
-
-    private static void addDragAndDropSupport(JTextArea textArea) {
-        new DropTarget(textArea, new DropTargetListener() {
-            @Override
-            public void dragEnter(DropTargetDragEvent dtde) {}
-
-            @Override
-            public void dragOver(DropTargetDragEvent dtde) {}
-
-            @Override
-            public void dropActionChanged(DropTargetDragEvent dtde) {}
-
-            @Override
-            public void dragExit(DropTargetEvent dte) {}
-
+    private JPanel createFilePanel(String buttonText, boolean isFile1) {
+        JPanel panel = new JPanel(new BorderLayout());
+        //JPanel panel = new JPanel(new FlowLayout(FlowLayout.CENTER));
+    
+        // Create a label to represent the folder icon
+        JLabel folderIcon = new JLabel();
+        folderIcon.setHorizontalAlignment(SwingConstants.CENTER);
+        //folderIcon.setBorder(BorderFactory.createLineBorder(Color.BLACK));
+        folderIcon.setPreferredSize(new Dimension(150, 150));
+    
+        // Set the folder icon image
+        try {
+            BufferedImage originalImage = ImageIO.read(new File("emptyfolder.png"));
+            Image resizedImage = originalImage.getScaledInstance(150, 150, Image.SCALE_SMOOTH);
+            folderIcon.setIcon(new ImageIcon(resizedImage));
+        } catch (IOException e) {
+            folderIcon.setText("📁"); // Fallback to Unicode folder icon
+        }
+    
+        // Add drag-and-drop functionality
+        new DropTarget(folderIcon, new DropTargetAdapter() {
             @Override
             public void drop(DropTargetDropEvent dtde) {
                 try {
                     dtde.acceptDrop(DnDConstants.ACTION_COPY);
                     List<File> droppedFiles = (List<File>) dtde.getTransferable().getTransferData(DataFlavor.javaFileListFlavor);
+                    if (!droppedFiles.isEmpty()) {
+                        File droppedFile = droppedFiles.get(0);
+                        if (droppedFile.getName().toLowerCase().endsWith(".txt")) {
+                            if (isFile1) {
+                                file1 = droppedFile;
+                            } else {
+                                file2 = droppedFile;
+                            }
+                            folderIcon.setText(droppedFile.getName());
+                            //fileNameLabel.setText(droppedFile.getName());
 
-                    StringBuilder content = new StringBuilder();
-                    for (File file : droppedFiles) {
-                        content.append(new String(Files.readAllBytes(file.toPath()))).append("\n");
+                            try {
+                                BufferedImage originalImage = ImageIO.read(new File("nonEmptyFolder.png"));
+                                Image resizedImage = originalImage.getScaledInstance(150, 150, Image.SCALE_SMOOTH);
+                                folderIcon.setIcon(new ImageIcon(resizedImage));
+                            } catch (IOException e) {
+                                folderIcon.setText("📁"); // Fallback to Unicode folder icon
+                            }
+                            // Create a label to display the selected file name
+                            JLabel fileNameLabel = new JLabel("No file selected");
+                            fileNameLabel.setHorizontalAlignment(SwingConstants.CENTER);
+                        } else {
+                            JOptionPane.showMessageDialog(null, "Only .txt files are allowed!");
+                        }
                     }
-                    textArea.setText(content.toString().trim());
                 } catch (Exception ex) {
-                    JOptionPane.showMessageDialog(textArea, "Failed to read file: " + ex.getMessage());
+                    ex.printStackTrace();
                 }
             }
         });
+    
+        // Create a button for manual file selection
+        JButton button = new JButton(buttonText);
+        //button.setPreferredSize(new Dimension(50, 30));
+        button.setBackground(Color.decode("#DAEDFF"));
+        button.setBorder(new LineBorder(Color.decode("#8EC5FF"), 2));
+        button.addActionListener(e -> {
+            JFileChooser fileChooser = new JFileChooser();
+    
+            // Add a file filter for .txt files
+            fileChooser.setFileFilter(new javax.swing.filechooser.FileFilter() {
+                @Override
+                public boolean accept(File file) {
+                    return file.isDirectory() || file.getName().toLowerCase().endsWith(".txt");
+                }
+    
+                @Override
+                public String getDescription() {
+                    return "Text Files (*.txt)";
+                }
+            });
+    
+            int option = fileChooser.showOpenDialog(null);
+            if (option == JFileChooser.APPROVE_OPTION) {
+                File selectedFile = fileChooser.getSelectedFile();
+                if (isFile1) {
+                    file1 = selectedFile;
+                } else {
+                    file2 = selectedFile;
+                }
+                folderIcon.setText(selectedFile.getName());
+                //fileNameLabel.setText(selectedFile.getName());
+
+                try {
+                    BufferedImage originalImage = ImageIO.read(new File("nonEmptyFolder.png"));
+                    Image resizedImage = originalImage.getScaledInstance(150, 150, Image.SCALE_SMOOTH);
+                    folderIcon.setIcon(new ImageIcon(resizedImage));
+                } catch (IOException ex) {
+                    folderIcon.setText("📁"); // Fallback to Unicode folder icon
+                }
+                // Create a label to display the selected file name
+                JLabel fileNameLabel = new JLabel("No file selected");
+                fileNameLabel.setHorizontalAlignment(SwingConstants.CENTER);
+            }
+        });
+    
+        panel.add(folderIcon, BorderLayout.CENTER);
+        panel.add(button, BorderLayout.SOUTH);
+    
+        return panel;
     }
 
-    private static int calculateSimilarity(String text1, String text2) {
-        String[] words1 = text1.split("\\s+");
-        String[] words2 = text2.split("\\s+");
-        Set<String> uniqueWords = new HashSet<>(Arrays.asList(words1));
-        uniqueWords.retainAll(Arrays.asList(words2));
 
-        int commonWordCount = uniqueWords.size();
-        int totalWordCount = Math.max(words1.length, words2.length);
+    private void compareFiles() {
+        if (file1 == null || file2 == null) {
+            JOptionPane.showMessageDialog(null, "Please select both files before comparing!");
+            return;
+        }
 
-        return (int) (((double) commonWordCount / totalWordCount) * 100);
+        try {
+            String content1 = new String(Files.readAllBytes(file1.toPath()));
+            String content2 = new String(Files.readAllBytes(file2.toPath()));
+
+            int similarity = calculateSimilarity(content1, content2);
+            if (similarity > 35) {
+                resultField.setText("Result: Plagiarism Detected with " + similarity + "% similarity");
+                resultField.setBackground(Color.decode("#D30000"));
+            }
+            else {
+                resultField.setText("Result: " + similarity + "% similarity");
+                resultField.setBackground(Color.decode("#29AB87"));
+            }
+
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(null, "Error reading files: " + e.getMessage());
+        }
+    }
+
+    private int calculateSimilarity(String text1, String text2) {
+        text1 = text1.replaceAll("\\s+", "").toLowerCase();
+        text2 = text2.replaceAll("\\s+", "").toLowerCase();
+
+        int maxLength = Math.max(text1.length(), text2.length());
+        int sameCount = 0;
+
+        for (int i = 0; i < Math.min(text1.length(), text2.length()); i++) {
+            if (text1.charAt(i) == text2.charAt(i)) {
+                sameCount++;
+            }
+        }
+
+        return (int) ((double) sameCount / maxLength * 100);
     }
 }
