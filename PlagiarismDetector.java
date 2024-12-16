@@ -1,6 +1,14 @@
+// Using Cosine similarity algo
+
+
+
 import javax.swing.*;
+import javax.swing.border.BevelBorder;
 //import javax.swing.text.JTextComponent;
 import javax.swing.border.LineBorder;
+
+import java.util.HashMap;
+import java.util.Map;
 
 import java.awt.*;
 import java.awt.datatransfer.DataFlavor;
@@ -12,16 +20,16 @@ import java.nio.file.Files;
 import java.util.List;
 import javax.imageio.ImageIO;
 
-public class PlagiarismCheckerUI {
+public class PlagiarismDetector {
     private File file1, file2;
     private JTextField resultField;
     //JTextComponent fileNameLabel;
 
     public static void main(String[] args) {
-        SwingUtilities.invokeLater(PlagiarismCheckerUI::new);
+        SwingUtilities.invokeLater(PlagiarismDetector::new);
     }
 
-    public PlagiarismCheckerUI() {
+    public PlagiarismChecker() {
         // Create main frame
         JFrame frame = new JFrame("Plagiarism Checker");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -34,12 +42,12 @@ public class PlagiarismCheckerUI {
         frame.add(instructions, BorderLayout.NORTH);
 
         // Panel for file selection (drag-and-drop or manual)
-        JPanel folderPanel = new JPanel();
+        JPanel folderPanel = new JPanel(new FlowLayout());
         folderPanel.setLayout(new GridLayout(1, 2, 20, 20));
         folderPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
 
-        JPanel file1Panel = createFilePanel("Choose file 1", true);
-        JPanel file2Panel = createFilePanel("Choose file 2", false);
+        JPanel file1Panel = createFilePanel("Choose file 1", true, "");
+        JPanel file2Panel = createFilePanel("Choose file 2", false, "");
 
         folderPanel.add(file1Panel);
         folderPanel.add(file2Panel);
@@ -47,9 +55,12 @@ public class PlagiarismCheckerUI {
         frame.add(folderPanel, BorderLayout.CENTER);
 
         // Compare button at the bottom
-        JPanel bottomPanel = new JPanel(new BorderLayout());
+        JPanel bottomPanel = new JPanel(new FlowLayout());
+        bottomPanel.setBorder(BorderFactory.createEmptyBorder(0,0,10,0));
         JButton compareButton = new JButton("Compare");
-        //compareButton.setPreferredSize(new Dimension(50, 30));
+        compareButton.setPreferredSize(new Dimension(100, 23));
+        //compareButton.setBorder(new BevelBorder(BevelBorder.RAISED));
+        compareButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         compareButton.setBorder(new LineBorder(Color.decode("#8EC5FF"), 2));
         compareButton.setBackground(Color.decode("#DAEDFF"));
         compareButton.addActionListener(e -> compareFiles());
@@ -60,14 +71,14 @@ public class PlagiarismCheckerUI {
         resultField.setEditable(false);
 
         bottomPanel.add(compareButton, BorderLayout.NORTH);
-        bottomPanel.add(resultField, BorderLayout.SOUTH);
+        //bottomPanel.add(resultField, BorderLayout.SOUTH);
 
         frame.add(bottomPanel, BorderLayout.SOUTH);
 
         frame.setVisible(true);
     }
 
-    private JPanel createFilePanel(String buttonText, boolean isFile1) {
+    private JPanel createFilePanel(String buttonText, boolean isFile1, String fileNameDisplay) {
         JPanel panel = new JPanel(new BorderLayout());
         //JPanel panel = new JPanel(new FlowLayout(FlowLayout.CENTER));
     
@@ -75,6 +86,7 @@ public class PlagiarismCheckerUI {
         JLabel folderIcon = new JLabel();
         folderIcon.setHorizontalAlignment(SwingConstants.CENTER);
         //folderIcon.setBorder(BorderFactory.createLineBorder(Color.BLACK));
+        //folderIcon.setBorder(new BevelBorder(BevelBorder.RAISED));
         folderIcon.setPreferredSize(new Dimension(150, 150));
     
         // Set the folder icon image
@@ -102,7 +114,6 @@ public class PlagiarismCheckerUI {
                                 file2 = droppedFile;
                             }
                             folderIcon.setText(droppedFile.getName());
-                            //fileNameLabel.setText(droppedFile.getName());
 
                             try {
                                 BufferedImage originalImage = ImageIO.read(new File("nonEmptyFolder.png"));
@@ -112,8 +123,9 @@ public class PlagiarismCheckerUI {
                                 folderIcon.setText("📁"); // Fallback to Unicode folder icon
                             }
                             // Create a label to display the selected file name
-                            JLabel fileNameLabel = new JLabel("No file selected");
-                            fileNameLabel.setHorizontalAlignment(SwingConstants.CENTER);
+                            JLabel fileNameLabel = new JLabel();
+                            fileNameLabel.setHorizontalAlignment(SwingConstants.SOUTH);
+                            fileNameLabel.setText(droppedFile.getName());
                         } else {
                             JOptionPane.showMessageDialog(null, "Only .txt files are allowed!");
                         }
@@ -129,6 +141,8 @@ public class PlagiarismCheckerUI {
         //button.setPreferredSize(new Dimension(50, 30));
         button.setBackground(Color.decode("#DAEDFF"));
         button.setBorder(new LineBorder(Color.decode("#8EC5FF"), 2));
+        button.setBorder(new BevelBorder(BevelBorder.RAISED));
+        button.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         button.addActionListener(e -> {
             JFileChooser fileChooser = new JFileChooser();
     
@@ -164,8 +178,9 @@ public class PlagiarismCheckerUI {
                     folderIcon.setText("📁"); // Fallback to Unicode folder icon
                 }
                 // Create a label to display the selected file name
-                JLabel fileNameLabel = new JLabel("No file selected");
-                fileNameLabel.setHorizontalAlignment(SwingConstants.CENTER);
+                JLabel fileNameLabel = new JLabel();
+                //fileNameLabel.setHorizontalAlignment(SwingConstants.CENTER);
+                fileNameLabel.setText(selectedFile.getName());
             }
         });
     
@@ -187,13 +202,15 @@ public class PlagiarismCheckerUI {
             String content2 = new String(Files.readAllBytes(file2.toPath()));
 
             int similarity = calculateSimilarity(content1, content2);
-            if (similarity > 35) {
-                resultField.setText("Result: Plagiarism Detected with " + similarity + "% similarity");
-                resultField.setBackground(Color.decode("#D30000"));
+            if (similarity > 15) {
+                //resultField.setText("Result: Plagiarism Detected with " + similarity + "% similarity");
+                //resultField.setBackground(Color.decode("#D30000"));
+                JOptionPane.showMessageDialog(null, "Result: Plagiarism Detected with " + similarity + "% similarity\"");
             }
             else {
-                resultField.setText("Result: " + similarity + "% similarity");
-                resultField.setBackground(Color.decode("#29AB87"));
+                //resultField.setText("Result: " + similarity + "% similarity");
+                //resultField.setBackground(Color.decode("#29AB87"));
+                JOptionPane.showMessageDialog(null, "Result: " + similarity + "% similarity");
             }
 
         } catch (Exception e) {
@@ -201,19 +218,55 @@ public class PlagiarismCheckerUI {
         }
     }
 
+    
+
     private int calculateSimilarity(String text1, String text2) {
-        text1 = text1.replaceAll("\\s+", "").toLowerCase();
-        text2 = text2.replaceAll("\\s+", "").toLowerCase();
+        // Preprocess texts: remove punctuation, convert to lowercase, and split into words
+        String[] words1 = text1.replaceAll("[^a-zA-Z0-9\\s]", "").toLowerCase().split("\\s+");
+        String[] words2 = text2.replaceAll("[^a-zA-Z0-9\\s]", "").toLowerCase().split("\\s+");
 
-        int maxLength = Math.max(text1.length(), text2.length());
-        int sameCount = 0;
+        // Create frequency maps for both texts
+        Map<String, Integer> freqMap1 = createFrequencyMap(words1);
+        Map<String, Integer> freqMap2 = createFrequencyMap(words2);
 
-        for (int i = 0; i < Math.min(text1.length(), text2.length()); i++) {
-            if (text1.charAt(i) == text2.charAt(i)) {
-                sameCount++;
-            }
+        // Compute cosine similarity
+        double cosineSimilarity = computeCosineSimilarity(freqMap1, freqMap2);
+
+        // Convert to percentage similarity
+        return (int) (cosineSimilarity * 100);
+    }
+
+    private Map<String, Integer> createFrequencyMap(String[] words) {
+        Map<String, Integer> freqMap = new HashMap<>();
+        for (String word : words) {
+            freqMap.put(word, freqMap.getOrDefault(word, 0) + 1);
+        }
+        return freqMap;
+    }
+
+    private double computeCosineSimilarity(Map<String, Integer> freqMap1, Map<String, Integer> freqMap2) {
+        // Compute dot product and magnitudes
+        double dotProduct = 0.0;
+        double magnitude1 = 0.0;
+        double magnitude2 = 0.0;
+
+        for (String key : freqMap1.keySet()) {
+            int freq1 = freqMap1.getOrDefault(key, 0);
+            int freq2 = freqMap2.getOrDefault(key, 0);
+            dotProduct += freq1 * freq2;
+            magnitude1 += Math.pow(freq1, 2);
         }
 
-        return (int) ((double) sameCount / maxLength * 100);
+        for (int freq : freqMap2.values()) {
+            magnitude2 += Math.pow(freq, 2);
+        }
+
+        // Avoid division by zero
+        if (magnitude1 == 0 || magnitude2 == 0) {
+            return 0.0;
+        }
+
+        return dotProduct / (Math.sqrt(magnitude1) * Math.sqrt(magnitude2));
     }
+
 }
