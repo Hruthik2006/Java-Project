@@ -1,4 +1,4 @@
-# Java-Project
+# Plagiarism Detector
 ![Static Badge](https://img.shields.io/badge/Java-22-blue) ![Static Badge](https://img.shields.io/badge/PBL-Project-red)
 <br>
 <br>
