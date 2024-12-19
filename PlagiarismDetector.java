@@ -29,7 +29,7 @@ public class PlagiarismDetector {
         SwingUtilities.invokeLater(PlagiarismDetector::new);
     }
 
-    public PlagiarismChecker() {
+    public PlagiarismDetector() {
         // Create main frame
         JFrame frame = new JFrame("Plagiarism Checker");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
